@@ -1,0 +1,25 @@
+[project]
+name = "diagram-api-service"
+version = "0.1.0"
+description = "An async Python API service that creates diagrams from natural language descriptions."
+authors = [
+    {name = "Gemini"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "google-generativeai",
+    "diagrams",
+    "pydantic"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx"
+]
