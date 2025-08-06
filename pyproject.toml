@@ -11,10 +11,11 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
-    "python-dotenv",
     "google-generativeai",
     "diagrams",
-    "pydantic"
+    "pydantic",
+    "pydantic-settings",
+    "anyio"
 ]
 
 [project.optional-dependencies]

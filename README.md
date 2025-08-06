@@ -13,7 +13,8 @@ This project is an async Python API service that generates diagrams from natural
 5.  **Install dependencies:** `uv pip install -e .`
 6.  **Create a `.env` file with your Gemini API key:**
     ```bash
-    echo "GEMINI_API_KEY=your_gemini_api_key_here" > .env
+    cp .env.example .env
+    # Edit .env and add your actual Gemini API key
     ```
 7.  **Run the application:** `uvicorn app.api.main:app --reload`
 

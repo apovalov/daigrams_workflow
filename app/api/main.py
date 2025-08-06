@@ -1,8 +1,9 @@
-import logging
+from __future__ import annotations
 
-from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 
+from app.config import Settings, settings
+from app.logging import get_logger, setup_logging
 from app.models.diagram import (
     AssistantRequest,
     AssistantResponse,
@@ -13,19 +14,28 @@ from app.models.diagram import (
 from app.services.assistant_service import AssistantService
 from app.services.diagram_service import DiagramService
 
-# Load environment variables from .env file
-load_dotenv()
+# Setup logging
+setup_logging()
+logger = get_logger(__name__)
 
-app = FastAPI()
-logger = logging.getLogger(__name__)
-
-
-def get_diagram_service():
-    return DiagramService()
+app = FastAPI(title="Diagram API Service", version="0.1.0")
 
 
-def get_assistant_service():
-    return AssistantService()
+def get_settings() -> Settings:
+    """Dependency to get application settings."""
+    return settings
+
+
+def get_diagram_service(settings: Settings = Depends(get_settings)) -> DiagramService:
+    """Dependency to get diagram service."""
+    return DiagramService(settings)
+
+
+def get_assistant_service(
+    settings: Settings = Depends(get_settings),
+) -> AssistantService:
+    """Dependency to get assistant service."""
+    return AssistantService(settings)
 
 
 @app.post("/api/v1/generate-diagram", response_model=DiagramResponse)

@@ -1,12 +1,22 @@
+from __future__ import annotations
+
 from app.agents.assistant_agent import AssistantAgent
+from app.config import Settings
+from app.logging import get_logger
 from app.models.diagram import AssistantResponse
 from app.services.diagram_service import DiagramService
 
+__all__ = ["AssistantService"]
+
+logger = get_logger(__name__)
+
 
 class AssistantService:
-    def __init__(self):
+    """Service for handling assistant conversations and routing to diagram generation."""
+
+    def __init__(self, settings: Settings) -> None:
         self.assistant_agent = AssistantAgent()
-        self.diagram_service = DiagramService()
+        self.diagram_service = DiagramService(settings)
 
     async def process_message(self, message: str) -> AssistantResponse:
         intent_data = await self.assistant_agent.get_intent(message)

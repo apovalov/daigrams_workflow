@@ -1,11 +1,21 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
+
+__all__ = [
+    "DiagramRequest",
+    "DiagramMetadata",
+    "DiagramResponse",
+    "AssistantRequest",
+    "AssistantResponse",
+]
 
 
 class DiagramRequest(BaseModel):
     description: str
     format: str | None = "png"
     style: str | None = None
-    size: dict | None = None
+    size: dict[str, str] | None = None
 
 
 class DiagramMetadata(BaseModel):
@@ -24,7 +34,7 @@ class DiagramResponse(BaseModel):
 
 class AssistantRequest(BaseModel):
     message: str
-    context: dict | None = None
+    context: dict[str, str] | None = None
     conversation_id: str | None = None
 
 
