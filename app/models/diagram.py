@@ -1,11 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional, List
+
 
 class DiagramRequest(BaseModel):
     description: str
-    format: Optional[str] = "png"
-    style: Optional[str] = None
-    size: Optional[dict] = None
+    format: str | None = "png"
+    style: str | None = None
+    size: dict | None = None
+
 
 class DiagramMetadata(BaseModel):
     nodes_created: int
@@ -13,20 +14,23 @@ class DiagramMetadata(BaseModel):
     connections_made: int
     generation_time: float
 
+
 class DiagramResponse(BaseModel):
     success: bool
-    image_data: Optional[str] = None
-    image_url: Optional[str] = None
-    metadata: Optional[DiagramMetadata] = None
+    image_data: str | None = None
+    image_url: str | None = None
+    metadata: DiagramMetadata | None = None
+
 
 class AssistantRequest(BaseModel):
     message: str
-    context: Optional[dict] = None
-    conversation_id: Optional[str] = None
+    context: dict | None = None
+    conversation_id: str | None = None
+
 
 class AssistantResponse(BaseModel):
     response_type: str
     content: str
-    image_data: Optional[str] = None
-    follow_up_questions: Optional[List[str]] = None
-    suggestions: Optional[List[str]] = None
+    image_data: str | None = None
+    follow_up_questions: list[str] | None = None
+    suggestions: list[str] | None = None

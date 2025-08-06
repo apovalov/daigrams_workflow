@@ -1,6 +1,7 @@
 from app.agents.assistant_agent import AssistantAgent
-from app.services.diagram_service import DiagramService
 from app.models.diagram import AssistantResponse
+from app.services.diagram_service import DiagramService
+
 
 class AssistantService:
     def __init__(self):
@@ -16,27 +17,32 @@ class AssistantService:
             if not description:
                 return AssistantResponse(
                     response_type="question",
-                    content="I can help with that! What would you like the diagram to show?"
+                    content="I can help with that! What would you like the diagram to show?",
                 )
-            
-            image_data, _ = await self.diagram_service.generate_diagram_from_description(description)
+
+            (
+                image_data,
+                _,
+            ) = await self.diagram_service.generate_diagram_from_description(
+                description
+            )
             return AssistantResponse(
                 response_type="image",
                 content="Here is the diagram you requested:",
-                image_data=image_data
+                image_data=image_data,
             )
         elif intent == "clarification":
             return AssistantResponse(
                 response_type="text",
-                content="I am an AI assistant that can generate diagrams from natural language descriptions. How can I help you?"
+                content="I am an AI assistant that can generate diagrams from natural language descriptions. How can I help you?",
             )
         elif intent == "greeting":
             return AssistantResponse(
                 response_type="text",
-                content="Hello! How can I help you create a diagram today?"
+                content="Hello! How can I help you create a diagram today?",
             )
         else:
             return AssistantResponse(
                 response_type="text",
-                content="I'm not sure how to help with that. Please try describing the diagram you would like to create."
+                content="I'm not sure how to help with that. Please try describing the diagram you would like to create.",
             )

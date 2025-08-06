@@ -1,6 +1,8 @@
-import google.generativeai as genai
-import os
 import json
+import os
+
+import google.generativeai as genai
+
 
 class AssistantAgent:
     def __init__(self):
@@ -8,7 +10,7 @@ class AssistantAgent:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY environment variable not set.")
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     async def get_intent(self, message: str) -> dict:
         prompt = self._create_intent_prompt(message)
@@ -37,7 +39,7 @@ class AssistantAgent:
 
     def _parse_response(self, response_text: str) -> dict:
         try:
-            json_text = response_text.strip().replace('```json', '').replace('```', '')
+            json_text = response_text.strip().replace("```json", "").replace("```", "")
             return json.loads(json_text)
-        except json.JSONDecodeError:
-            raise ValueError("Failed to decode LLM response as JSON.")
+        except json.JSONDecodeError as e:
+            raise ValueError("Failed to decode LLM response as JSON.") from e

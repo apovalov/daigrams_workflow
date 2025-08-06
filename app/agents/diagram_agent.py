@@ -1,6 +1,8 @@
-import google.generativeai as genai
-import os
 import json
+import os
+
+import google.generativeai as genai
+
 
 class DiagramAgent:
     def __init__(self):
@@ -8,7 +10,7 @@ class DiagramAgent:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY environment variable not set.")
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     async def generate_analysis(self, description: str) -> dict:
         prompt = self._create_prompt(description)
@@ -76,8 +78,7 @@ class DiagramAgent:
     def _parse_response(self, response_text: str) -> dict:
         try:
             # The response may be wrapped in markdown, so we need to extract the JSON
-            json_text = response_text.strip().replace('```json', '').replace('```', '')
+            json_text = response_text.strip().replace("```json", "").replace("```", "")
             return json.loads(json_text)
-        except json.JSONDecodeError:
-            raise ValueError("Failed to decode LLM response as JSON.")
-
+        except json.JSONDecodeError as e:
+            raise ValueError("Failed to decode LLM response as JSON.") from e
