@@ -59,11 +59,11 @@ NODE_MAP: dict[str, type] = {
     "codebuild": Codebuild,
     "codepipeline": Codepipeline,
     # Generic service types
-    "service": Lambda,  # Default for microservices
-    "microservice": Lambda,
-    "auth_service": Cognito,
-    "payment_service": Lambda,
-    "order_service": Lambda,
+    "service": EC2,  # Default for microservices
+    "microservice": EC2,
+    "auth_service": EC2,
+    "payment_service": EC2,
+    "order_service": EC2,
     "web_server": EC2,
     "database": RDS,
     "queue": SQS,
@@ -99,7 +99,19 @@ class DiagramService:
         nodes: dict[str, Any] = {}
         start_time = time.time()
 
-        with Diagram(description, filename=diagram_path, show=False, outformat="png"):
+        with Diagram(
+            description,
+            filename=diagram_path,
+            show=False,
+            outformat="png",
+            graph_attr={
+                "pad": "0.1",
+                "splines": "ortho",
+                "rankdir": "LR",
+                "nodesep": "0.8",
+                "ranksep": "1.2",
+            },
+        ):
             # Create clusters and the nodes within them
             for cluster_info in analysis_result.get("clusters", []):
                 with Cluster(cluster_info["label"]):
