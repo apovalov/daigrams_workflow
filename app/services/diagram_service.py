@@ -3,9 +3,15 @@ import uuid
 import base64
 import time
 from diagrams import Diagram, Cluster, Edge
-from diagrams.aws.compute import EC2
-from diagrams.aws.database import RDS
-from diagrams.aws.network import ELB
+from diagrams.aws.compute import EC2, Lambda
+from diagrams.aws.database import RDS, Dynamodb
+from diagrams.aws.network import ELB, APIGateway, VPC, InternetGateway
+from diagrams.aws.storage import S3
+from diagrams.aws.integration import SQS, SNS
+from diagrams.aws.management import Cloudwatch
+from diagrams.aws.security import IAM, Cognito
+from diagrams.aws.analytics import Kinesis
+from diagrams.aws.devtools import Codebuild, Codepipeline
 from app.agents.diagram_agent import DiagramAgent
 
 class DiagramService:
@@ -19,9 +25,55 @@ class DiagramService:
         analysis_result = await self.agent.generate_analysis(description)
 
         node_map = {
+            # Compute
             "ec2": EC2,
+            "lambda": Lambda,
+
+            # Database
             "rds": RDS,
+            "dynamodb": Dynamodb,
+
+            # Network & Load Balancing
             "elb": ELB,
+            "alb": ELB,  # Application Load Balancer
+            "nlb": ELB,  # Network Load Balancer
+            "api_gateway": APIGateway,
+            "apigateway": APIGateway,
+            "vpc": VPC,
+            "internet_gateway": InternetGateway,
+
+            # Storage
+            "s3": S3,
+
+            # Integration & Messaging
+            "sqs": SQS,
+            "sns": SNS,
+
+            # Management & Monitoring
+            "cloudwatch": Cloudwatch,
+            "monitoring": Cloudwatch,
+
+            # Security
+            "iam": IAM,
+            "cognito": Cognito,
+
+            # Analytics
+            "kinesis": Kinesis,
+
+            # Developer Tools
+            "codebuild": Codebuild,
+            "codepipeline": Codepipeline,
+
+            # Generic service types
+            "service": Lambda,  # Default for microservices
+            "microservice": Lambda,
+            "auth_service": Cognito,
+            "payment_service": Lambda,
+            "order_service": Lambda,
+            "web_server": EC2,
+            "database": RDS,
+            "queue": SQS,
+            "gateway": APIGateway,
         }
 
         diagram_path = os.path.join(self.temp_dir, str(uuid.uuid4()))
