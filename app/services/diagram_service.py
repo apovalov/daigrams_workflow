@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import os
+import shutil
 import time
 import uuid
 from typing import Any
@@ -14,9 +15,10 @@ from diagrams.aws.database import RDS, Dynamodb
 from diagrams.aws.devtools import Codebuild, Codepipeline
 from diagrams.aws.integration import SNS, SQS
 from diagrams.aws.management import Cloudwatch
-from diagrams.aws.network import ELB, VPC, APIGateway, InternetGateway
+from diagrams.aws.network import ALB, ELB, NLB, VPC, APIGateway, InternetGateway
 from diagrams.aws.security import IAM, Cognito
 from diagrams.aws.storage import S3
+from diagrams.generic.blank import Blank
 
 from app.agents.diagram_agent import DiagramAgent
 from app.config import Settings
@@ -36,8 +38,8 @@ NODE_MAP: dict[str, type] = {
     "dynamodb": Dynamodb,
     # Network & Load Balancing
     "elb": ELB,
-    "alb": ELB,  # Application Load Balancer
-    "nlb": ELB,  # Network Load Balancer
+    "alb": ALB,  # Application Load Balancer
+    "nlb": NLB,  # Network Load Balancer
     "api_gateway": APIGateway,
     "apigateway": APIGateway,
     "vpc": VPC,
@@ -124,6 +126,13 @@ class DiagramService:
                             node_class = NODE_MAP.get(node_details["type"].lower())
                             if node_class:
                                 nodes[node_id] = node_class(node_details["label"])
+                            else:
+                                logger.warning(
+                                    f"Unknown node type '{node_details['type']}' for node '{node_id}', using generic node"
+                                )
+                                nodes[node_id] = Blank(
+                                    f"Unknown: {node_details['label']}"
+                                )
 
             # Create standalone nodes
             clustered_node_ids = [
@@ -136,6 +145,13 @@ class DiagramService:
                     node_class = NODE_MAP.get(node_details["type"].lower())
                     if node_class:
                         nodes[node_details["id"]] = node_class(node_details["label"])
+                    else:
+                        logger.warning(
+                            f"Unknown node type '{node_details['type']}' for node '{node_details['id']}', using generic node"
+                        )
+                        nodes[node_details["id"]] = Blank(
+                            f"Unknown: {node_details['label']}"
+                        )
 
             # Create connections
             for conn in analysis_result.get("connections", []):
@@ -153,7 +169,14 @@ class DiagramService:
         with open(image_path, "rb") as f:
             image_data = base64.b64encode(f.read()).decode("utf-8")
 
+        # Clean up temporary files and directories
         os.remove(image_path)
+        # Remove the UUID subdirectory and any remaining files (like .dot files)
+        diagram_dir = os.path.dirname(diagram_path)
+        if os.path.exists(diagram_dir) and os.path.basename(
+            diagram_dir
+        ) != os.path.basename(self.temp_dir):
+            shutil.rmtree(diagram_dir)
 
         metadata = {
             "nodes_created": len(analysis_result.get("nodes", [])),

@@ -5,10 +5,12 @@ __all__ = ["intent_prompt", "diagram_analysis_prompt"]
 
 def intent_prompt(message: str) -> str:
     """Generate intent classification prompt for assistant agent."""
-    return f"""
+    # Escape potential injection by wrapping in triple quotes and escaping triple quotes
+    safe_message = message.replace('"""', r"\"\"\"").replace("\\", "\\\\")
+    return f'''
 You are an intelligent assistant. Your job is to determine the user's intent from their message.
 
-Message: "{message}"
+Message: """{safe_message}"""
 
 Possible intents are:
 - "generate_diagram": The user wants to generate a diagram.
@@ -22,15 +24,17 @@ For example:
     "intent": "generate_diagram",
     "description": "Create a diagram of a web application."
 }}
-"""
+'''
 
 
 def diagram_analysis_prompt(description: str) -> str:
     """Generate diagram analysis prompt for diagram agent."""
-    return f"""
+    # Escape potential injection by wrapping in triple quotes and escaping triple quotes
+    safe_description = description.replace('"""', r"\"\"\"").replace("\\", "\\\\")
+    return f'''
 You are a diagram architecture expert. Analyze the user's natural language description and break it down into specific components, relationships, and groupings needed for a technical diagram.
 
-Description: {description}
+Description: """{safe_description}"""
 
 Available component types:
 - Compute: ec2, lambda, service, microservice, web_server
@@ -70,8 +74,8 @@ Respond in structured JSON format like this example:
         {{"id": "monitoring", "type": "cloudwatch", "label": "CloudWatch"}}
     ],
     "clusters": [
-        {{"id": "web_tier", "label": "Web Tier", "nodes": ["web1", "web2"]}},
-        {{"id": "microservices", "label": "Microservices", "nodes": ["auth_svc"]}}
+        {{"label": "Web Tier", "nodes": ["web1", "web2"]}},
+        {{"label": "Microservices", "nodes": ["auth_svc"]}}
     ],
     "connections": [
         {{"source": "alb", "target": "web1"}},
@@ -82,4 +86,4 @@ Respond in structured JSON format like this example:
         {{"source": "auth_svc", "target": "queue"}}
     ]
 }}
-"""
+'''

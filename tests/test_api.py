@@ -9,7 +9,7 @@ from app.agents.assistant_agent import AssistantAgent
 from app.agents.diagram_agent import DiagramAgent
 from app.api.main import app, get_assistant_service, get_diagram_service, get_settings
 from app.config import Settings
-from app.models.diagram import AssistantResponse
+from app.models.diagram import AssistantRequest, AssistantResponse
 from app.services.assistant_service import AssistantService
 from app.services.diagram_service import DiagramService
 
@@ -139,7 +139,7 @@ def test_diagram_agent_analysis_parsing():
     response_text = """
     {
         "nodes": [{"id": "web1", "type": "ec2", "label": "Web Server"}],
-        "clusters": [{"id": "web_tier", "label": "Web Tier", "nodes": ["web1"]}],
+        "clusters": [{"label": "Web Tier", "nodes": ["web1"]}],
         "connections": [{"source": "web1", "target": "db"}]
     }
     """
@@ -148,3 +148,168 @@ def test_diagram_agent_analysis_parsing():
     assert result["nodes"][0]["id"] == "web1"
     assert len(result["clusters"]) == 1
     assert len(result["connections"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_assistant_endpoint_with_context():
+    """Test assistant endpoint with conversation context."""
+    mock_service = MagicMock(spec=AssistantService)
+    mock_service.process_message = AsyncMock(
+        return_value=AssistantResponse(
+            response_type="text",
+            content="I understand you want to continue our conversation.",
+            suggestions=["Let's build on that", "Tell me more"],
+        )
+    )
+
+    app.dependency_overrides[get_assistant_service] = lambda: mock_service
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/api/v1/assistant",
+            json={
+                "message": "Continue from where we left off",
+                "conversation_id": "test-123",
+                "context": {"previous_topic": "microservices"},
+            },
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["response_type"] == "text"
+    assert "suggestions" in data
+    app.dependency_overrides = {}
+
+
+@pytest.mark.asyncio
+async def test_generate_diagram_error_handling():
+    """Test diagram generation error handling."""
+    mock_service = MagicMock(spec=DiagramService)
+    mock_service.generate_diagram_from_description = AsyncMock(
+        side_effect=Exception("Test error")
+    )
+
+    app.dependency_overrides[get_diagram_service] = lambda: mock_service
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/api/v1/generate-diagram", json={"description": "test"}
+        )
+
+    assert response.status_code == 500
+    app.dependency_overrides = {}
+
+
+@pytest.mark.asyncio
+async def test_assistant_bad_request():
+    """Test assistant endpoint with bad request."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/api/v1/assistant",
+            json={"message": ""},  # Empty message
+        )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_diagram_generation_bad_request():
+    """Test diagram generation with bad request."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/api/v1/generate-diagram",
+            json={"description": ""},  # Empty description
+        )
+
+    assert response.status_code == 400
+
+
+def test_assistant_agent_fallback_heuristics():
+    """Test assistant agent fallback heuristics."""
+    agent = AssistantAgent()
+
+    # Test diagram generation keywords
+    result = agent._create_fallback_intent("create a diagram")
+    assert result["intent"] == "generate_diagram"
+
+    # Test help keywords
+    result = agent._create_fallback_intent("how does this work")
+    assert result["intent"] == "help"
+
+    # Test general fallback
+    result = agent._create_fallback_intent("random text")
+    assert result["intent"] == "general"
+
+
+def test_diagram_agent_fallback_analysis():
+    """Test diagram agent fallback analysis generation."""
+    agent = DiagramAgent()
+
+    # Test microservices pattern
+    result = agent._create_fallback_analysis(
+        "microservices with authentication and payment"
+    )
+    assert any(node["type"] == "lambda" for node in result["nodes"])
+    assert any("auth" in node["id"].lower() for node in result["nodes"])
+
+    # Test traditional web architecture
+    result = agent._create_fallback_analysis("load balancer with EC2 instances")
+    assert any(node["type"] == "alb" for node in result["nodes"])
+    assert any(node["type"] == "ec2" for node in result["nodes"])
+
+    # Test simple fallback
+    result = agent._create_fallback_analysis("unknown architecture")
+    assert len(result["nodes"]) >= 2
+
+
+@pytest.mark.asyncio
+async def test_assistant_service_memory():
+    """Test assistant service conversation memory."""
+    settings = Settings(gemini_api_key="test_key", tmp_dir="/tmp/test")
+    service = AssistantService(settings)
+
+    # Mock the agent to return predictable results
+    with patch.object(service.assistant_agent, "get_intent") as mock_intent:
+        mock_intent.return_value = {"intent": "greeting"}
+
+        # First message
+        request1 = AssistantRequest(message="Hello", conversation_id="test-conv")
+        await service.process_message(request1)
+
+        # Check context was stored
+        context = service._get_conversation_context("test-conv")
+        assert len(context["messages"]) == 2  # User + Assistant
+
+        # Second message with same conversation ID
+        mock_intent.return_value = {"intent": "clarification"}
+        request2 = AssistantRequest(message="Tell me more", conversation_id="test-conv")
+        await service.process_message(request2)
+
+        # Check context was updated
+        context = service._get_conversation_context("test-conv")
+        assert len(context["messages"]) == 4  # 2 previous + 2 new
+
+
+def test_assistant_service_context_limit():
+    """Test that conversation context is limited to prevent memory bloat."""
+    settings = Settings(gemini_api_key="test_key", tmp_dir="/tmp/test")
+    service = AssistantService(settings)
+
+    # Create a large context
+    large_context = {
+        "messages": [{"role": "user", "content": f"message {i}"} for i in range(15)]
+    }
+
+    service._update_conversation_context("test", large_context)
+    updated_context = service._get_conversation_context("test")
+
+    # Should be limited to 10 messages
+    assert len(updated_context["messages"]) == 10

@@ -15,14 +15,22 @@ class AssistantAgent:
     def __init__(self) -> None:
         pass
 
-    async def get_intent(self, message: str) -> dict[str, str]:
+    async def get_intent(
+        self, message: str, context: dict | None = None
+    ) -> dict[str, str]:
         """Get intent from user message using LLM."""
-        prompt = intent_prompt(message)
+        # Include context in prompt if available
+        context_str = ""
+        if context and "messages" in context and len(context["messages"]) > 1:
+            recent_messages = context["messages"][-3:]  # Last 3 messages for context
+            context_str = f"\nConversation history: {recent_messages}"
+
+        prompt = intent_prompt(message + context_str)
         try:
             response = await client.aio.models.generate_content(
                 model=settings.gemini_model, contents=prompt
             )
-            return self._parse_response(response.text)
+            return self._parse_response(response.text or "")
         except Exception as e:
             # If there's a location or API issue, return a basic fallback
             if "location" in str(e).lower() or "failed_precondition" in str(e).lower():

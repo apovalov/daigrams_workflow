@@ -75,4 +75,4 @@ async def assistant(
     if not request.message:
         raise HTTPException(status_code=400, detail="Invalid message provided")
 
-    return await assistant_service.process_message(request.message)
+    return await assistant_service.process_message(request)
